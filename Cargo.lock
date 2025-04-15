@@ -9606,6 +9606,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "auto-hash-map",
  "bitvec",
  "codspeed-criterion-compat",
  "data-encoding",
