@@ -41,10 +41,11 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use chunk::EcmascriptChunkItem;
 use code_gen::{CodeGeneration, CodeGenerationHoistedStmt};
 use either::Either;
+use itertools::Itertools;
 use parse::{ParseResult, parse};
 use path_visitor::ApplyVisitors;
 use references::esm::UrlRewriteBehavior;
@@ -1145,6 +1146,10 @@ impl EcmascriptModuleContent {
 
     /// Creates a new [`Vc<EcmascriptModuleContent>`] from multiple modules, performing scope
     /// hoisting.
+    /// - The `modules` argument is a list of all modules to be merged (and whethey their exports
+    ///   should be exposed).
+    /// - The `entries` argument is a list of modules that should be treated as entry points for the
+    ///   merged module (used to determine execution order).
     #[turbo_tasks::function]
     pub async fn new_merged(
         modules: Vec<(ResolvedVc<Box<dyn EcmascriptAnalyzable>>, bool)>,
@@ -1197,7 +1202,7 @@ impl EcmascriptModuleContent {
                 let globals = if let ParseResult::Ok { globals, .. } = &*var_name {
                     globals
                 } else {
-                    unreachable!()
+                    bail!("expected ParseResult::Ok");
                 };
                 let (is_export_mark, module_syntax_contexts) = GLOBALS.set(globals, || {
                     let is_export_mark = Mark::new();
@@ -1299,11 +1304,11 @@ async fn merge_modules(
 ) -> Result<Program> {
     struct SetSyntaxContextVisitor<'a> {
         current_module: ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>,
-        // A marker to quickly identify the special cross-module variable references
+        /// A marker to quickly identify the special cross-module variable references
         export_mark: Mark,
-        // The syntax contexts in the merged AST (each module has its own)
+        /// The syntax contexts in the merged AST (each module has its own)
         merged_ctxts: &'a FxIndexMap<ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>, SyntaxContext>,
-        // The export syntax contexts in the current AST, which will be mapped to merged_ctxts
+        /// The export syntax contexts in the current AST, which will be mapped to merged_ctxts
         current_module_contexts:
             &'a FxIndexMap<ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>, SyntaxContext>,
     }
@@ -1346,9 +1351,9 @@ async fn merge_modules(
                 });
             });
 
-            content.take().body
+            Ok(content.take().body)
         } else {
-            unreachable!()
+            bail!("Expected Program::Module");
         }
     };
 
@@ -1361,8 +1366,9 @@ async fn merge_modules(
         shebang: None,
         body: entries
             .iter()
-            .flat_map(|(_, i)| prepare_module(&mut contents[*i]))
-            .collect(),
+            .map(|(_, i)| prepare_module(&mut contents[*i]))
+            .flatten_ok()
+            .collect::<Result<Vec<_>>>()?,
     };
 
     // Replace inserted `__turbopack_merged_esm__(i);` statements with the corresponding ith-module
@@ -1381,9 +1387,9 @@ async fn merge_modules(
         {
             let index = args[0].expr.as_lit().unwrap().as_num().unwrap().value as usize;
 
-                    if inserted.insert(index) {
-                        let module = &mut contents[index];
-                        merged_ast.body.splice(i..=i, prepare_module(module));
+            if inserted.insert(index) {
+                let module = &mut contents[index];
+                merged_ast.body.splice(i..=i, prepare_module(module)?);
 
                 // Don't increment, the ith item has just changed
                 continue;
