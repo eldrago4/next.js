@@ -34,6 +34,7 @@ import { CloseController } from './web-on-close'
 import { getEdgePreviewProps } from './get-edge-preview-props'
 import { getBuiltinRequestContext } from '../after/builtin-request-context'
 import { getImplicitTags } from '../lib/implicit-tags'
+import { RSC_REDIRECT_STATUS_CODE } from '../../shared/lib/constants'
 
 export class NextRequestHint extends NextRequest {
   sourcePage: string
@@ -428,6 +429,20 @@ export async function adapter(
         getRelativeURL(redirectURL.toString(), requestURL.toString())
       )
     }
+  }
+
+  // TODO: comment + gate + gate by minimal mode!
+  if (
+    isRSCRequest &&
+    response &&
+    response.status >= 300 &&
+    response.status < 400
+  ) {
+    response = new Response(null, {
+      ...response,
+      status: RSC_REDIRECT_STATUS_CODE,
+      headers: response.headers,
+    })
   }
 
   const finalResponse = response ? response : NextResponse.next()

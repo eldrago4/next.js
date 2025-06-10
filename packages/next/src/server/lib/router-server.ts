@@ -32,6 +32,7 @@ import {
   PHASE_PRODUCTION_SERVER,
   PHASE_DEVELOPMENT_SERVER,
   UNDERSCORE_NOT_FOUND_ROUTE,
+  RSC_REDIRECT_STATUS_CODE,
 } from '../../shared/lib/constants'
 import { RedirectStatusCode } from '../../client/components/redirect-status-code'
 import { DevBundlerService } from './dev-bundler-service'
@@ -59,6 +60,7 @@ import {
   handleChromeDevtoolsWorkspaceRequest,
   isChromeDevtoolsWorkspaceUrl,
 } from './chrome-devtools-workspace'
+import { RSC_HEADER } from '../../client/components/app-router-headers'
 
 const debug = setupDebug('next:router-server:main')
 const isNextFont = (pathname: string | null) =>
@@ -375,6 +377,16 @@ export async function initialize(opts: {
         invokedOutputs,
       })
 
+      // If it was somehow already intercepted, we should stop right away.
+      // TODO: comment + gate (maybe not needed)
+      if (statusCode === RSC_REDIRECT_STATUS_CODE) {
+        res.statusCode = RSC_REDIRECT_STATUS_CODE
+        const destination = url.format(parsedUrl)
+        res.setHeader('Location', destination)
+        res.end()
+        return
+      }
+
       if (res.closed || res.finished) {
         return
       }
@@ -425,9 +437,15 @@ export async function initialize(opts: {
       // handle redirect
       if (!bodyStream && statusCode && statusCode > 300 && statusCode < 400) {
         const destination = url.format(parsedUrl)
-        res.statusCode = statusCode
         res.setHeader('location', destination)
 
+        // TODO: comment + gate
+        if (req.headers[RSC_HEADER.toLowerCase()] === '1') {
+          res.statusCode = RSC_REDIRECT_STATUS_CODE
+          return res.end(destination)
+        }
+
+        res.statusCode = statusCode
         if (statusCode === RedirectStatusCode.PermanentRedirect) {
           res.setHeader('Refresh', `0;url=${destination}`)
         }
