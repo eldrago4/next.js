@@ -25,12 +25,12 @@ export function DevOverlay({
   const [scale, setScale] = useDevToolsScale()
   return (
     <ShadowPortal>
+      <Tailwind />
       <CssReset />
       <Base scale={scale} />
       <Colors />
       <ComponentStyles />
       <DarkTheme />
-      <Tailwind />
 
       <RenderError state={state} isAppDir={true}>
         {({ runtimeErrors, totalErrorCount }) => {
