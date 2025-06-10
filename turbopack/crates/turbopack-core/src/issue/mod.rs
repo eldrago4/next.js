@@ -861,8 +861,7 @@ impl PlainIssue {
         };
         let trait_ref = issue.into_trait_ref().await?;
 
-        let deref: &dyn Issue = std::ops::Deref::deref(&trait_ref);
-        let severity = deref.severity();
+        let severity = (trait_ref).severity();
 
         Ok(Self::cell(Self {
             severity,
