@@ -2392,7 +2392,12 @@ export async function ncc_https_proxy_agent(task, opts) {
 
 export async function precompile(task, opts) {
   await task.parallel(
-    ['browser_polyfills', 'copy_ncced', 'copy_styled_jsx_assets'],
+    [
+      'browser_polyfills',
+      'copy_ncced',
+      'copy_styled_jsx_assets',
+      'inject_tailwind_styles',
+    ],
     opts
   )
 
@@ -2829,13 +2834,7 @@ export async function diagnostics(task, opts) {
 
 export async function build(task, opts) {
   await task.serial(
-    [
-      'inject_tailwind_styles',
-      'precompile',
-      'compile',
-      'check_error_codes',
-      'generate_types',
-    ],
+    ['precompile', 'compile', 'check_error_codes', 'generate_types'],
     opts
   )
 }
@@ -2877,11 +2876,18 @@ export async function check_error_codes(task, opts) {
   }
 }
 
-export async function inject_tailwind_styles() {
+export async function inject_tailwind_styles(task, opts) {
   // Generate the production build of tailwind css file.
-  await execa.command('pnpm build-tw', {
-    stdio: 'inherit',
-  })
+  if (opts.dev) {
+    // If await, it blocks the subsequent tasks.
+    execa('pnpm', ['watch-tw'], {
+      stdio: 'inherit',
+    })
+  } else {
+    await execa('pnpm', ['build-tw'], {
+      stdio: 'inherit',
+    })
+  }
 
   const stylesDir = 'src/client/components/react-dev-overlay/ui/styles'
 

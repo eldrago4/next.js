@@ -90,7 +90,7 @@
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test-storybook": "test-storybook",
-    "build-tw": "tailwindcss --input ./src/client/components/react-dev-overlay/ui/styles/tailwind.input.css --output ./src/client/components/react-dev-overlay/ui/styles/tailwind.output.css --minify",
+    "build-tw": "tailwindcss --input ./src/client/components/react-dev-overlay/tailwind.input.css --output ./src/client/components/react-dev-overlay/ui/styles/tailwind.output.css --minify",
     "watch-tw": "pnpm build-tw --watch"
   },
   "taskr": {
