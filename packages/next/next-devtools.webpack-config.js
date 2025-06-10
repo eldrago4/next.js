@@ -92,6 +92,11 @@ module.exports = ({ dev, ...rest }) => {
       rules: [
         { test: /\.m?js$/, loader: `source-map-loader`, enforce: `pre` },
         {
+          test: /\.css$/,
+          resourceQuery: /raw/,
+          type: 'asset/source',
+        },
+        {
           test: /\.(ts|tsx)$/,
           exclude: [/node_modules/],
           loader: 'builtin:swc-loader',

@@ -1,1 +1,3 @@
+/* The location of this file is considered the entrypoint. */
+/* You can set the base path with `source("../path")`, but locating this file is more reliable. */
 @import 'tailwindcss';
