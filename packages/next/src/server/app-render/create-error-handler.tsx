@@ -14,11 +14,8 @@ declare global {
   var __next_log_error__: undefined | ((err: unknown) => void)
 }
 
-type RSCErrorHandler = (err: unknown) => string | undefined
-type SSRErrorHandler = (
-  err: unknown,
-  errorInfo?: ErrorInfo
-) => string | undefined
+type RSCErrorHandler = (err: unknown) => string
+type SSRErrorHandler = (err: unknown, errorInfo?: ErrorInfo) => string
 
 export type DigestedError = Error & { digest: string }
 
@@ -43,18 +40,20 @@ export function getDigestForWellKnownError(error: unknown): string | undefined {
   return undefined
 }
 
+const ABORT_ERROR_DIGEST = 'NEXTJS_ABORT_ERROR'
+
 export function createFlightReactServerErrorHandler(
   shouldFormatError: boolean,
   onReactServerRenderError: (err: DigestedError) => void
 ): RSCErrorHandler {
-  return (thrownValue: unknown) => {
+  return (thrownValue: unknown): string => {
     if (typeof thrownValue === 'string') {
       // TODO-APP: look at using webcrypto instead. Requires a promise to be awaited.
       return stringHash(thrownValue).toString()
     }
 
     // If the response was closed, we don't need to log the error.
-    if (isAbortError(thrownValue)) return
+    if (isAbortError(thrownValue)) return ABORT_ERROR_DIGEST
 
     const digest = getDigestForWellKnownError(thrownValue)
 
@@ -99,14 +98,14 @@ export function createHTMLReactServerErrorHandler(
   silenceLogger: boolean,
   onReactServerRenderError: undefined | ((err: DigestedError) => void)
 ): RSCErrorHandler {
-  return (thrownValue: unknown) => {
+  return (thrownValue: unknown): string => {
     if (typeof thrownValue === 'string') {
       // TODO-APP: look at using webcrypto instead. Requires a promise to be awaited.
       return stringHash(thrownValue).toString()
     }
 
     // If the response was closed, we don't need to log the error.
-    if (isAbortError(thrownValue)) return
+    if (isAbortError(thrownValue)) return ABORT_ERROR_DIGEST
 
     const digest = getDigestForWellKnownError(thrownValue)
 
@@ -170,13 +169,13 @@ export function createHTMLErrorHandler(
   silenceLogger: boolean,
   onHTMLRenderSSRError: (err: DigestedError, errorInfo?: ErrorInfo) => void
 ): SSRErrorHandler {
-  return (thrownValue: unknown, errorInfo?: ErrorInfo) => {
+  return (thrownValue: unknown, errorInfo?: ErrorInfo): string => {
     let isSSRError = true
 
     allCapturedErrors.push(thrownValue)
 
     // If the response was closed, we don't need to log the error.
-    if (isAbortError(thrownValue)) return
+    if (isAbortError(thrownValue)) return ABORT_ERROR_DIGEST
 
     const digest = getDigestForWellKnownError(thrownValue)
 
