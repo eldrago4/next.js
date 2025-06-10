@@ -2829,7 +2829,13 @@ export async function diagnostics(task, opts) {
 
 export async function build(task, opts) {
   await task.serial(
-    ['precompile', 'compile', 'check_error_codes', 'generate_types'],
+    [
+      'build_tailwind_styles',
+      'precompile',
+      'compile',
+      'check_error_codes',
+      'generate_types',
+    ],
     opts
   )
 }
@@ -2868,6 +2874,19 @@ export async function check_error_codes(task, opts) {
       process.exit(1)
     }
     await task.start('compile', opts)
+  }
+}
+
+export async function build_tailwind_styles(task, opts) {
+  // Generate the production build of tailwind css file.
+  const watchmode = opts.dev
+  const tailwindPromise = execa('pnpm', [watchmode ? 'watch-tw' : 'build-tw'], {
+    stdio: 'inherit',
+  })
+  // In watch-mode the process never completes i.e. the Promise never resolves.
+  // But taskr needs to know that it can start watching the files for the task it has to manually restart.
+  if (!watchmode) {
+    await tailwindPromise
   }
 }
 
