@@ -46,8 +46,7 @@ async fn trait_ref() {
         .get_value();
 
         counter.await?.incr();
-
-        assert_eq!((&*trait_ref_counter).get_value_sync().0, 2);
+        assert_eq!(trait_ref_counter.get_value_sync().0, 2);
         assert_eq!(*counter.get_value().strongly_consistent().await?, 2);
         assert_eq!(*counter_value.strongly_consistent().await?, 2);
         assert_eq!(*ref_counter_value.strongly_consistent().await?, 2);
