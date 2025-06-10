@@ -11,6 +11,7 @@ import { RenderError } from './container/runtime-error/render-error'
 import { DarkTheme } from './styles/dark-theme'
 import { useDevToolsScale } from './components/errors/dev-tools-indicator/dev-tools-info/preferences'
 import type { HydrationErrorState } from '../pages/hydration-error-state'
+import { Tailwind } from './styles/tailwind'
 
 export function DevOverlay({
   state,
@@ -29,6 +30,7 @@ export function DevOverlay({
       <Colors />
       <ComponentStyles />
       <DarkTheme />
+      <Tailwind />
 
       <RenderError state={state} isAppDir={true}>
         {({ runtimeErrors, totalErrorCount }) => {
